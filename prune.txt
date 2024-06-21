@@ -1,0 +1,17 @@
+# Menghapus semua container yang sudah berhenti
+sudo docker container prune -f
+
+# Menghapus semua image yang tidak terhubung dengan container
+sudo docker image prune -f
+
+# Menghapus semua image yang tidak digunakan
+sudo docker image prune -a -f
+
+# Menghapus semua volume yang tidak digunakan
+sudo docker volume prune -f
+
+# Menghapus semua jaringan yang tidak digunakan
+sudo docker network prune -f
+
+# Menghapus semua resource yang tidak digunakan
+sudo docker system prune -a --volumes -f

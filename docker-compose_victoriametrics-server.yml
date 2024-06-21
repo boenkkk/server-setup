@@ -1,0 +1,18 @@
+# https://docs.victoriametrics.com/quick-start/
+
+services:
+  victoriametrics-server:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics-server
+    hostname: victoriametrics-server
+    ports:
+      - "8428:8428"
+    networks:
+      - app-tier
+    volumes:
+      - /opt/victoriametrics-server/victoria-metrics-data:/victoria-metrics-data
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

@@ -1,0 +1,23 @@
+# https://docs.portainer.io/start/install-ce/server/docker/linux
+
+services:
+  portainer:
+    image: portainer/portainer-ce:2.17.0
+    container_name: portainer
+    hostname: portainer
+    ports:
+      - "8000:8000"
+      - "9443:9443"
+    networks:
+      - app-tier
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/portainer/data:/data
+
+volumes:
+  portainer_data:
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

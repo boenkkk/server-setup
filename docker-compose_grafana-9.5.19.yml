@@ -1,0 +1,24 @@
+# https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/
+
+services:
+  grafana-9.5.19:
+    image: grafana/grafana:9.5.19
+    container_name: grafana-9.5.19
+    hostname: grafana-9.5.19
+    ports:
+      - "3001:3000"
+    networks:
+      - app-tier
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    volumes:
+      - /opt/grafana/grafana-storage/var/lib/grafana:/var/lib/grafana
+    restart: always
+
+volumes:
+  grafana-storage:
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

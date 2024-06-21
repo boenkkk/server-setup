@@ -1,0 +1,27 @@
+# https://hub.docker.com/_/postgres
+
+services:
+  postgres-server:
+    image: postgres:latest
+    container_name: postgres-server
+    hostname: postgres-server
+    ports:
+      - "5432:5432"
+    networks:
+      - app-tier
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespostgres123
+      POSTGRES_DB: LOCAL_DB
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /opt/postgres-server/var/lib/postgresql/data:/var/lib/postgresql/data
+      - /opt/postgres-server/etc/postgresql:/etc/postgresql
+
+volumes:
+  pgdata:
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

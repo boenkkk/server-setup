@@ -1,0 +1,26 @@
+# https://hub.docker.com/_/mysql
+
+services:
+  mysql-server:
+    image: mysql:5.7
+    container_name: mysql-server
+    hostname: mysql-server
+    ports:
+      - "3306:3306"
+    networks:
+      - app-tier
+    environment:
+      MYSQL_ROOT_PASSWORD: rootroot123
+      MYSQL_USER: user
+      MYSQL_PASSWORD: useruser123
+      MYSQL_DATABASE: LOCAL_DB
+    volumes:
+      - /opt/mysql-server/var/lib/mysql:/var/lib/mysql
+      - /opt/mysql-server/etc/mysql/conf.d:/etc/mysql/conf.d
+    restart: always
+    # command: mysql -hsome.mysql.host -usome-mysql-user -p
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

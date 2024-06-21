@@ -1,0 +1,36 @@
+# https://docs.gitlab.com/ee/install/docker.html#install-gitlab-using-docker-compose
+# https://docs.gitlab.com/ee/install/next_steps.html
+# https://hub.docker.com/r/gitlab/gitlab-ce
+# https://www.howtoforge.com/tutorial/how-to-install-and-configure-gitlab-on-ubuntu-1804/
+
+services:
+  gitlab-ce:
+    image: gitlab/gitlab-ce:17.1.0-ce.0
+    container_name: gitlab-ce
+    hostname: 'gitlab.grita.id'
+    ports:
+      - '8929:8929'
+      - '443:443'
+      - '2424:22'
+    networks:
+      - app-tier
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.grita.id:8929'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2424
+    volumes:
+      - '/opt/gitlab/config/etc/gitlab:/etc/gitlab'
+      - '/opt/gitlab/logs/var/log/gitlab:/var/log/gitlab'
+      - '/opt/gitlab/data/var/opt/gitlab:/var/opt/gitlab'
+    shm_size: '256m'
+    restart: always
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
+
+
+# compose
+# nano /etc/gitlab/initial_root_password
+# gitlab-ctl reconfigure

@@ -1,0 +1,21 @@
+# https://github.com/provectus/kafka-ui
+
+services:
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    ports:
+      - 666:8080
+    networks:
+      - app-tier
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    # volumes:
+    #   - /opt/kafka-ui/etc/kafkaui/config.yml:/etc/kafkaui/dynamic_config.yaml:rw
+    #   - /opt/kafka-ui/etc/kafkaui:/etc/kafkaui:rw
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
