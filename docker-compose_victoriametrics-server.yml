@@ -11,6 +11,7 @@ services:
       - app-tier
     volumes:
       - /opt/victoriametrics-server/victoria-metrics-data:/victoria-metrics-data
+    restart: always
 
 networks:
   app-tier:

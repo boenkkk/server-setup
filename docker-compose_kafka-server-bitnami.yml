@@ -1,0 +1,65 @@
+# https://hub.docker.com/r/bitnami/kafka
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.6
+    container_name: zookeeper-server
+    hostname: zookeeper-server
+    ports:
+      - "2181:2181"
+    networks:
+      - app-tier
+    environment:
+      # ALLOW_ANONYMOUS_LOGIN: no
+      ZOO_ENABLE_AUTH: yes
+      ZOO_SERVER_USERS: kafka
+      ZOO_SERVER_PASSWORDS: secret
+      ZOO_CLIENT_USER: kafka
+      ZOO_CLIENT_PASSWORD: secret
+
+  kafka-server:
+    image: bitnami/kafka:2.8.1
+    container_name: kafka-server
+    hostname: kafka-server
+    ports:
+      - "9092:9092"
+    networks:
+      - app-tier
+    environment:
+      # KAFKA_LISTENERS: SASL_PLAINTEXT://:9092
+      # KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://localhost:9092
+      # KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+      # KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
+      # KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      # KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      # KAFKA_MESSAGE_MAX_BYTES: 500000000
+
+      ALLOW_PLAINTEXT_LISTENER: no
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENERS: INTERNAL://:9092,CLIENT://:9093,
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,CLIENT://localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,CLIENT:SASL_PLAINTEXT
+      KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      #Client credentials
+      KAFKA_CLIENT_USERS: user_kafka
+      KAFKA_CLIENT_PASSWORDS: secret
+      #Interbroker credentials
+      KAFKA_INTER_BROKER_USER: kafka
+      KAFKA_INTER_BROKER_PASSWORD: CMwvKfeVJociGkSToMZQ
+      #Zookeeper credentials
+      KAFKA_ZOOKEEPER_PROTOCOL: SASL
+      KAFKA_ZOOKEEPER_USER: kafka
+      KAFKA_ZOOKEEPER_PASSWORD: secret
+    # volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock
+      # - /opt/kafka-server/etc/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    # restart: always
+    links:
+      - zookeeper
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge

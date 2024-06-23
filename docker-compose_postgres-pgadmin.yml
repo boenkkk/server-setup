@@ -14,6 +14,7 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=useruser123
       - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
       - PGADMIN_CONFIG_LOGIN_BANNER="Authorised users only!"
+    restart: always
 
 networks:
   app-tier:

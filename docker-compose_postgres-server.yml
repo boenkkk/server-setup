@@ -17,6 +17,7 @@ services:
     volumes:
       - /opt/postgres-server/var/lib/postgresql/data:/var/lib/postgresql/data
       - /opt/postgres-server/etc/postgresql:/etc/postgresql
+    restart: always
 
 volumes:
   pgdata:
