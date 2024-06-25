@@ -9,6 +9,7 @@ services:
       - "2181:2181"
     networks:
       - app-tier
+    restart: always
 
   kafka-server:
     image: wurstmeister/kafka
@@ -29,8 +30,9 @@ services:
       # KAFKA_MESSAGE_MAX_BYTES: 500000000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/kafka-server/etc/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-    # restart: always
+      - ./kafka_server_jaas-wurstmeister.conf:/etc/kafka/kafka_server_jaas.conf
+      - /opt/kafka-server/kafka_data:/kafka
+    restart: always
     links:
       - zookeeper
 
