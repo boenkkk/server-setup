@@ -1,0 +1,17 @@
+# https://jsreport.net/learn/docker
+
+services:
+  jsreport:
+    image: jsreport/jsreport:4.5.0
+    container_name: jsreport
+    hostname: jsreport
+    ports:
+      - "5488:5488"
+    restart: always
+    networks:
+      - app-tier
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
