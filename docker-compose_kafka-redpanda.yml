@@ -1,6 +1,4 @@
-# https://docs.redpanda.com/23.2/reference/docker-compose/
-
-name: redpanda-enterprise
+name: redpanda
 networks:
   redpanda_network:
     driver: bridge
@@ -37,39 +35,17 @@ services:
       - redpanda:/var/lib/redpanda/data
     networks:
       - redpanda_network
-  redpandarpk:
-    command:
-      - cluster
-      - license
-      - set
-      - --path
-      # this is the default location in which rpk searches for the redpanda.license file.
-      # if you mount the license key file to a different location, update this path.
-      - /etc/redpanda/redpanda.license
-      # rpk connects to the admin API of one broker to set the license key for the whole cluster.
-      - --api-urls redpanda:9644
-    image: docker.redpanda.com/redpandadata/redpanda:v23.2.21
-    # mount the local directory that contains your license key to the container.
-    # give Redpanda read and write access to the license.
-    volumes:
-      - ./license:/etc/redpanda:rw
-    networks:
-      - redpanda_network
-    depends_on:
-      - redpanda
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
   console:
-    container_name: redpanda-console
-    image: docker.redpanda.com/redpandadata/console:v2.6.0
-    # mount the local directory that contains your license key to the container.
-    # give Redpanda Console read access to the license.
-    volumes:
-      - ./license:/etc/redpanda:ro
-    networks:
-      - redpanda_network
+    image: docker.redpanda.com/redpandadata/console:v2.6.1
     entrypoint: /bin/sh
-    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml && echo "$$CONSOLE_ROLEBINDINGS_CONFIG_FILE" > /tmp/role-bindings.yml && /app/console'
+    command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
     environment:
-      REDPANDA_LICENSE_FILEPATH: /etc/redpanda/redpanda.license
       CONFIG_FILEPATH: /tmp/config.yml
       CONSOLE_CONFIG_FILE: |
         kafka:
@@ -81,38 +57,62 @@ services:
           adminApi:
             enabled: true
             urls: ["http://redpanda:9644"]
-        login:
+        connect:
           enabled: true
-          jwtSecret: change-this-to-something-secret
-          useSecureCookies: false
-          plain:
-            enabled: true
-            credentials:
-            - username: "jane"
-              password: "some-other-secret-password"
-            - username: "john"
-              password: "some-secret-password"
-        enterprise:
-          rbac:
-            enabled: true
-            roleBindingsFilepath: /tmp/role-bindings.yml
-      CONSOLE_ROLEBINDINGS_CONFIG_FILE: |
-        roleBindings:
-        - metadata:
-            name: Platform Ops
-          subjects:
-            - kind: user
-              provider: Plain
-              name: jane
-          roleName: admin
-        - metadata:
-            name: Software Engineers
-          subjects:
-            - kind: user
-              provider: Plain
-              name: john
-          roleName: editor
+          clusters:
+            - name: local-connect-cluster
+              url: http://connect:8083
     ports:
       - 8080:8080
+    networks:
+      - redpanda_network
     depends_on:
       - redpanda
+  owl-shop:
+    image: quay.io/cloudhut/owl-shop:sha-042112b
+    networks:
+      - redpanda_network
+    # platform: 'linux/amd64'
+    entrypoint: /bin/sh
+    command: -c "echo \"$$OWLSHOP_CONFIG_FILE\" > /tmp/config.yml; /app/owlshop"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      OWLSHOP_CONFIG_FILE: |
+        shop:
+          requestRate: 1
+          interval: 0.1s
+          topicReplicationFactor: 1
+          topicPartitionCount: 1
+        kafka:
+          brokers: "redpanda:9092"
+    depends_on:
+      - redpanda
+  connect:
+    image: docker.redpanda.com/redpandadata/connectors:latest
+    hostname: connect
+    container_name: connect
+    networks:
+      - redpanda_network
+    # platform: 'linux/amd64'
+    depends_on:
+      - redpanda
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_CONFIGURATION: |
+          key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+          value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+          group.id=connectors-cluster
+          offset.storage.topic=_internal_connectors_offsets
+          config.storage.topic=_internal_connectors_configs
+          status.storage.topic=_internal_connectors_status
+          config.storage.replication.factor=-1
+          offset.storage.replication.factor=-1
+          status.storage.replication.factor=-1
+          offset.flush.interval.ms=1000
+          producer.linger.ms=50
+          producer.batch.size=131072
+      CONNECT_BOOTSTRAP_SERVERS: redpanda:9092
+      CONNECT_GC_LOG_ENABLED: "false"
+      CONNECT_HEAP_OPTS: -Xms512M -Xmx512M
+      CONNECT_LOG_LEVEL: info
