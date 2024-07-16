@@ -1,0 +1,23 @@
+services:
+  mqtt-explorer:
+    image: smeagolworms4/mqtt-explorer
+    container_name: mqtt-explorer
+    ports:
+      - "4000:4000"  # Adjust the ports as needed
+    # restart: unless-stopped
+    networks:
+      - app-tier
+    # environment:
+    #   TTP_PORT: 4000
+    #   CONFIG_PATH: /mqtt-explorer/config
+    #   HTTP_USER:
+    #   HTTP_PASSWORD:
+    #   SSL_KEY_PATH:
+    #   SSL_CERT_PATH:
+    #   INITIAL_CONFIG: # Initial json configuration for start
+    volumes:
+      - /opt/mqtt-explorer/config:/mqtt-explorer/config 
+
+networks:
+  app-tier:
+    external: true
