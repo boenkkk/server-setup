@@ -1,0 +1,26 @@
+# https://registry.hub.docker.com/r/postgis/postgis/
+
+services:
+  postgis-server:
+    image: postgis/postgis:latest
+    container_name: postgis-server
+    hostname: postgis-server
+    ports:
+      - "5433:5432"
+    networks:
+      - app-tier
+    environment:
+      POSTGRES_DB: ICONICS_MODEM
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespostgres123
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - /home/docker-container/postgis-server/pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
