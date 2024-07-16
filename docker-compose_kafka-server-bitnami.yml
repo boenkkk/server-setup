@@ -1,65 +1,52 @@
-# https://hub.docker.com/r/bitnami/kafka
+# TODO: why user & pass incorect while tested
+
+# TEST
+# kafka-console-producer --broker-list localhost:9092 --topic test \
+#   --producer.config <(echo -e "security.protocol=SASL_PLAINTEXT\n
+#   sasl.mechanism=PLAIN\n
+#   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"user\" password=\"user-secret\";")
 
 services:
-  zookeeper:
-    image: bitnami/zookeeper:3.6
+  zookeeper-server:
+    image: bitnami/zookeeper:latest
     container_name: zookeeper-server
     hostname: zookeeper-server
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
     ports:
-      - "2181:2181"
+      - '2181:2181'
     networks:
       - app-tier
-    environment:
-      # ALLOW_ANONYMOUS_LOGIN: no
-      ZOO_ENABLE_AUTH: yes
-      ZOO_SERVER_USERS: kafka
-      ZOO_SERVER_PASSWORDS: secret
-      ZOO_CLIENT_USER: kafka
-      ZOO_CLIENT_PASSWORD: secret
 
   kafka-server:
-    image: bitnami/kafka:2.8.1
+    image: bitnami/kafka:latest
     container_name: kafka-server
     hostname: kafka-server
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-server:2181
+      KAFKA_LISTENERS: SASL_PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://kafka-server:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_OPTS: -Djava.security.auth.login.config=/opt/bitnami/kafka/config/kafka_server_jaas.conf -Djava.security.debug=sasl -Dzookeeper.authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: SASL_PLAINTEXT:SASL_PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
     ports:
-      - "9092:9092"
+      - '9092:9092'
     networks:
       - app-tier
-    environment:
-      # KAFKA_LISTENERS: SASL_PLAINTEXT://:9092
-      # KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://localhost:9092
-      # KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
-      # KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
-      # KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
-      # KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      # KAFKA_MESSAGE_MAX_BYTES: 500000000
-
-      ALLOW_PLAINTEXT_LISTENER: no
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENERS: INTERNAL://:9092,CLIENT://:9093,
-      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,CLIENT://localhost:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,CLIENT:SASL_PLAINTEXT
-      KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      #Client credentials
-      KAFKA_CLIENT_USERS: user_kafka
-      KAFKA_CLIENT_PASSWORDS: secret
-      #Interbroker credentials
-      KAFKA_INTER_BROKER_USER: kafka
-      KAFKA_INTER_BROKER_PASSWORD: CMwvKfeVJociGkSToMZQ
-      #Zookeeper credentials
-      KAFKA_ZOOKEEPER_PROTOCOL: SASL
-      KAFKA_ZOOKEEPER_USER: kafka
-      KAFKA_ZOOKEEPER_PASSWORD: secret
-    # volumes:
-      # - /var/run/docker.sock:/var/run/docker.sock
-      # - /opt/kafka-server/etc/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-    # restart: always
+    volumes:
+      - ./kafka_server_jaas-bitnami.conf:/opt/bitnami/kafka/config/kafka_server_jaas.conf
     links:
-      - zookeeper
+      - zookeeper-server
+
+volumes:
+  kafka_data:
 
 networks:
   app-tier:
-    name: app-tier
-    driver: bridge
+    external: true
