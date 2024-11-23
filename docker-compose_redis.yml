@@ -1,0 +1,19 @@
+# https://medium.com/@szilardmatis/setup-redis-and-redisinsight-with-docker-compose-139de8bba7de
+
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - app-tier
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - 5540:5540
+    networks:
+      - app-tier
+
+networks:
+  app-tier:
+    external: true
