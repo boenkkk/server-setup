@@ -2,6 +2,7 @@ services:
   vernemq1:
     image: vernemq/vernemq
     container_name: vernemq1
+    hostname: vernemq1
     ports:
       - "1883:1883"
     networks:
