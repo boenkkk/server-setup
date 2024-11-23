@@ -1,0 +1,25 @@
+# https://hub.docker.com/r/kartoza/geoserver
+
+services:
+  geoserver:
+    image: kartoza/geoserver
+    container_name: geoserver
+    hostname: geoserver
+    environment:
+      GEOSERVER_ADMIN_USER: geoserver
+      GEOSERVER_ADMIN_PASSWORD: geoservergeoserver123
+    ports:
+      - "17300:8080"
+    networks:
+      - app-tier
+    volumes:
+      - geoserver_data:/var/lib/geoserver_data
+    restart: unless-stopped
+
+volumes:
+  geoserver_data:
+    driver: local
+
+networks:
+  app-tier:
+    external: true
