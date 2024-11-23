@@ -1,4 +1,5 @@
 # https://github.com/wurstmeister/kafka-docker/issues/532
+# org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";
 
 services:
   zookeeper:
@@ -32,7 +33,7 @@ services:
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
       # KAFKA_MESSAGE_MAX_BYTES: 500000000
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./kafka_server_jaas-wurstmeister.conf:/etc/kafka/kafka_server_jaas.conf
