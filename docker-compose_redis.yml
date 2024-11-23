@@ -2,13 +2,17 @@
 
 services:
   redis:
-    image: redis:latest
+    image: redis:7.4.1-alpine
+    container_name: redis
+    hostname: redis
     ports:
       - 6379:6379
     networks:
       - app-tier
   redis-insight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:2.60
+    container_name: redis-insight
+    hostname: redis-insight
     ports:
       - 5540:5540
     networks:
