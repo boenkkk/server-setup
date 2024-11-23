@@ -1,0 +1,28 @@
+# https://hub.docker.com/_/emqx
+
+# add dashboard admin
+# https://docs.emqx.com/en/emqx/v5.2/admin/cli.html#admins
+# sudo docker exec -it emqx /bin/bash
+# emqx ctl admins add emqx emqxemqx123
+
+services:
+  mqttx:
+    image: emqx:5.2
+    container_name: emqx
+    environment:
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=emqxemqx123
+    ports:
+      - 1883:1883
+      - 8083:8083
+      - 8084:8084
+      - 8883:8883
+      - 18083:18083
+    networks:
+      - app-tier
+    # volumes:
+    # - /home/docker-container-data/emqx/data:/opt/emqx/data
+    # - /home/docker-container-data/emqx/log:/opt/emqx/log
+
+networks:
+  app-tier:
+    external: true
