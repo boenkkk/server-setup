@@ -17,6 +17,7 @@ services:
     #   INITIAL_CONFIG: # Initial json configuration for start
     volumes:
       - /opt/mqtt-explorer/config:/mqtt-explorer/config 
+    restart: always
 
 networks:
   app-tier:

@@ -22,6 +22,7 @@ services:
     # volumes:
     # - /home/docker-container-data/emqx/data:/opt/emqx/data
     # - /home/docker-container-data/emqx/log:/opt/emqx/log
+    restart: always
 
 networks:
   app-tier:
