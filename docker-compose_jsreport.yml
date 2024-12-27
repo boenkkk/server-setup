@@ -5,11 +5,19 @@ services:
     image: jsreport/jsreport:4.5.0
     container_name: jsreport
     hostname: jsreport
+    environment:
+      - extensions_authentication_admin_username=admin
+      - extensions_authentication_admin_password=adminadmin123
+      - extensions_authentication_cookieSession_secret=yyylong
     ports:
       - "5488:5488"
-    restart: always
+    volumes:
+      - /home/docker-container-files/jsreport/data:/app/data:rw
+      - /home/docker-container-files/jsreport/logs:/app/logs:rw
+      # - /home/docker-container-files/jsreport/jsreport.config.json:/app/jsreport.config.json
     networks:
       - app-tier
+    restart: always
 
 networks:
   app-tier:
