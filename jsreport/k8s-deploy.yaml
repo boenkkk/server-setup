@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: jsreport
+    namespace: jsreport
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: jsreport
+    template:
+        metadata:
+            labels:
+                app: jsreport
+        spec:
+            imagePullSecrets:
+                -   name: harbor-secret
+            containers:
+                -   name: jsreport
+                    image: 1.2.3.4/scada/jsreport:latest
+                    ports:
+                        -   containerPort: 5488
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: jsreport-service
+    namespace: jsreport
+spec:
+    selector:
+        app: jsreport
+    type: NodePort
+    ports:
+        -   name: jsreport-5488
+            protocol: TCP
+            port: 5488
+            targetPort: 5488
+            nodePort: 30448
