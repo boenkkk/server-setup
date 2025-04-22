@@ -20,6 +20,25 @@ spec:
                     image: 1.2.3.4/scada/jsreport:latest
                     ports:
                         -   containerPort: 5488
+                    env:
+                        - name: extensions_authentication_admin_username
+                          value: "admin"
+                        - name: extensions_authentication_admin_password
+                          value: "adminadmin123"
+                        - name: extensions_authentication_cookieSession_secret
+                          value: "yyylong"
+            #         volumeMounts:
+            #             - mountPath: /app/data
+            #               name: jsreport-data
+            #             - mountPath: /app/logs
+            #               name: jsreport-logs
+            # volumes:
+            #     - name: jsreport-data
+            #       hostPath:
+            #           path: /home/docker-container-files/jsreport/data
+            #     - name: jsreport-logs
+            #       hostPath:
+            #           path: /home/docker-container-files/jsreport/logs
 
 ---
 apiVersion: v1
@@ -36,4 +55,4 @@ spec:
             protocol: TCP
             port: 5488
             targetPort: 5488
-            nodePort: 30448
+            nodePort: 30444

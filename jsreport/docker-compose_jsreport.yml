@@ -13,10 +13,10 @@ services:
       - extensions_authentication_cookieSession_secret=yyylong
     ports:
       - "5488:5488"
-    volumes:
-      - /home/docker-container-files/jsreport/data:/app/data:rw
-      - /home/docker-container-files/jsreport/logs:/app/logs:rw
-      # - /home/docker-container-files/jsreport/jsreport.config.json:/app/jsreport.config.json
+    # volumes:
+    #   - /home/docker-container-files/jsreport/data:/app/data:rw
+    #   - /home/docker-container-files/jsreport/logs:/app/logs:rw
+    #   # - /home/docker-container-files/jsreport/jsreport.config.json:/app/jsreport.config.json
     networks:
       - app-tier
     restart: always
