@@ -2,11 +2,11 @@
 
 services:
   postgres-pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:latest
     container_name: postgres-pgadmin
     hostname: postgres-pgadmin
     ports:
-      - "667:80"
+      - "8080:80"
     networks:
       - app-tier
     environment:
@@ -14,6 +14,8 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=useruser123
       - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
       - PGADMIN_CONFIG_LOGIN_BANNER="Authorised users only!"
+    volumes:
+      - /var/lib/pgadmin/storage:/home/docker-container-files/pgadmin/storage
     restart: always
 
 networks:
