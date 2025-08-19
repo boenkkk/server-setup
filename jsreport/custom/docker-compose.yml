@@ -1,0 +1,11 @@
+services:
+  jsreport:
+    build: .
+    ports:
+      - "5488:5488"
+    volumes:
+      - ./jsreport/data:/usr/src/app/data
+      - ./jsreport/reports:/usr/src/app/reports
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
