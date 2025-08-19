@@ -1,0 +1,56 @@
+version: "3.7"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,SASL_PLAINTEXT://0.0.0.0:9094,EXTERNAL://0.0.0.0:29092 # Added external listener
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,SASL_PLAINTEXT://kafka:9094,EXTERNAL://localhost:29092 # Updated advertised.
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/kafka-server-jaas.conf
+      KAFKA_SUPER_USERS: User:admin
+    volumes:
+      - ./kafka-secrets:/etc/kafka/secrets
+
+  kafka-setup: # Added a service for creating the user
+    image: confluentinc/cp-kafka:7.5.3
+    depends_on:
+      - kafka
+    entrypoint: ["sh", "-c"]
+    command: |
+      "
+      # Wait for Kafka to be ready
+      echo 'Waiting for Kafka to be ready...'
+      cub kafka-ready -b kafka:9092 1 30
+
+      # Create the user
+      kafka-configs --bootstrap-server kafka:9092 --alter --add-config 'SCRAM-SHA-256=[password=nimda]' --entity-type users --entity-name admin
+
+      echo 'Kafka user created successfully.'
+      "
+
+volumes:
+  kafka-secrets:
