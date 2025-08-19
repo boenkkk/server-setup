@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  komodo:
+    image: komodoofficial/komodo:cd_release_7f740ae_dev
+    container_name: komodo_node
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+      - "7770:7770" # P2P network port
+      - "7771:7771" # RPC port
+    volumes:
+      - /home/docker-container-files/komodo-data:/root/.komodo # Persist blockchain data
+    environment:
+      - KOMODO_PARAMS=/root/.komodo/params
+    command:
+      [
+        "komodod",
+        "-daemon",
+        "-rpcuser=user",
+        "-rpcpassword=useruser123",
+        "-server",
+        "-txindex",
+      ]
