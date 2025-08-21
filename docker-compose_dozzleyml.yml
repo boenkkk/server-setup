@@ -1,0 +1,12 @@
+# https://www.virtualizationhowto.com/2024/03/best-docker-containers-for-home-server-in-2024/
+version: "3"
+
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
