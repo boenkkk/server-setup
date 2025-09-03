@@ -1,0 +1,46 @@
+# https://nginxproxymanager.com/setup/
+# https://github.com/NginxProxyManager/nginx-proxy-manager
+services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    hostname: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    networks:
+      - app-tier
+    environment:
+      INITIAL_ADMIN_EMAIL: admin@domain.com
+      INITIAL_ADMIN_PASSWORD: adminadmin123
+      # Postgres parameters:
+      DB_POSTGRES_HOST: 'postgres-server'
+      DB_POSTGRES_PORT: '5432'
+      DB_POSTGRES_USER: 'npmuser'
+      DB_POSTGRES_PASSWORD: 'npmusernpmuser123'
+      DB_POSTGRES_NAME: 'npm_db'
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    # depends_on:
+    #   - db
+
+  # db:
+  #   image: postgres:latest
+  #   environment:
+  #     POSTGRES_USER: 'npm'
+  #     POSTGRES_PASSWORD: 'npmpass'
+  #     POSTGRES_DB: 'npm'
+  #   volumes:
+  #     - ./postgres:/var/lib/postgresql/data
+
+networks:
+  app-tier:
+    external: true
