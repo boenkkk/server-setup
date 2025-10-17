@@ -2,6 +2,7 @@ services:
   kadeck:
     image: xeotek/kadeck:5.2.3
     container_name: kadeck
+    hostname: kadeck
     ports:
       - "666:666"
     networks:

@@ -4,6 +4,7 @@ services:
   redpanda-console:
     image: docker.redpanda.com/redpandadata/console:latest
     container_name: redpanda-console
+    hostname: redpanda-console
     ports:
       - "665:8080"
     networks:
