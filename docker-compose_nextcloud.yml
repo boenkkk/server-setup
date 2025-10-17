@@ -2,41 +2,48 @@
 services:
   # Note: MariaDB is external service. You can find more information about the configuration here:
   # https://hub.docker.com/_/mariadb
-  nextcloud-db:
-    # Note: Check the recommend version here: https://docs.nextcloud.com/server/latest/admin_manual/installation/system_requirements.html#server
-    image: mariadb:lts
-    restart: always
-    command: --transaction-isolation=READ-COMMITTED
-    volumes:
-      - nextcloud-db:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=
-      - MYSQL_PASSWORD=
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
+  # nextcloud-db:
+  #   # Note: Check the recommend version here: https://docs.nextcloud.com/server/latest/admin_manual/installation/system_requirements.html#server
+  #   image: mariadb:lts
+  #   restart: always
+  #   command: --transaction-isolation=READ-COMMITTED
+  #   volumes:
+  #     - nextcloud-db:/var/lib/mysql
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=
+  #     - MYSQL_PASSWORD=
+  #     - MYSQL_DATABASE=nextcloud
+  #     - MYSQL_USER=nextcloud
 
   # Note: Redis is an external service. You can find more information about the configuration here:
   # https://hub.docker.com/_/redis
-  nextcloud-redis:
-    image: redis:alpine
-    restart: always
+  # nextcloud-redis:
+  #   image: redis:alpine
+  #   restart: always
 
   nextcloud-app:
     image: nextcloud
+    container_name: nextcloud
+    hostname: nextcloud
     restart: always
     ports:
       - 8080:80
-    depends_on:
-      - nextcloud-redis
-      - nextcloud-db
+    networks:
+      - app-tier
+    # depends_on:
+    #   - nextcloud-redis
+    #   - nextcloud-db
     volumes:
       - nextcloud-app:/var/www/html
     environment:
-      - MYSQL_PASSWORD=
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_HOST=nextcloud-db
+      - POSTGRES_HOST=postgres-server:5432
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespostgres123
 
 volumes:
   nextcloud-app:
-  nextcloud-db:
+  # nextcloud-db:
+networks:
+  app-tier:
+    external: true
