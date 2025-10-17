@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    networks:
+      - app-tier
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootroot123
+    volumes:
+      - mongodb_data:/data/db
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      - app-tier
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: rootroot123
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      # ME_CONFIG_BASICAUTH_ENABLED: false
+      ME_CONFIG_BASICAUTH: false
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
