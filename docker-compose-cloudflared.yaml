@@ -1,0 +1,17 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2025.9.1
+    container_name: cloudflared
+    hostname: cloudflared
+    restart: always
+    volumes:
+      - /opt/cloudflared:/home/nonroot/.cloudflared
+    command: tunnel --no-autoupdate run
+    networks:
+      - app-tier
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+
+networks:
+  app-tier:
+    external: true
