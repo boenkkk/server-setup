@@ -1,0 +1,29 @@
+# https://hub.docker.com/r/aapanel/aapanel
+# https://www.aapanel.com/new/download.html
+# It is recommended that you use Ubuntu22.04 to install aaPanel
+# URL=https://www.aapanel.com/script/install_7.0_en.sh && if [ -f /usr/bin/curl ];then curl -ksSO "$URL" ;else wget --no-check-certificate -O install_7.0_en.sh "$URL";fi;bash install_7.0_en.sh aapanel
+
+version: "3.8"
+
+services:
+  aapanel:
+    image: aapanel/aapanel:lib
+    container_name: aapanel
+    hostname: aapanel
+    restart: unless-stopped
+    ports:
+      - "8886:7800" # aapanel web panel
+      - "22:21" # FTP or SSH port (depending on setup)
+      - "443:443" # HTTPS
+      - "82:80" # HTTP
+      - "889:888" # internal panel service
+    networks:
+      - app-tier
+    volumes:
+      - ~/website_data:/www/wwwroot
+      - ~/mysql_data:/www/server/data
+      - ~/vhost:/www/server/panel/vhost
+
+networks:
+  app-tier:
+    external: true
