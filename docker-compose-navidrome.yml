@@ -1,0 +1,30 @@
+# https://www.navidrome.org/docs/installation/docker/
+# https://hub.docker.com/r/deluan/navidrome
+# https://www.navidrome.org/docs/usage/configuration-options/
+
+services:
+  navidrome:
+    image: deluan/navidrome:pr-4416
+    container_name: navidrome
+    hostname: navidrome
+    # https://github.com/navidrome/navidrome/issues/2743#issuecomment-1913522115
+    # user: 1000:1000 # should be owner of volumes
+    networks:
+      - app-tier
+    ports:
+      - "4533:4533"
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      ND_SESSIONTIMEOUT: 24h
+    volumes:
+      - navidrome_data:/data
+      - /opt/navidrome/music:/music
+
+volumes:
+  navidrome_data:
+
+networks:
+  app-tier:
+    external: true
