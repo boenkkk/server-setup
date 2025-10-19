@@ -34,7 +34,7 @@ services:
     #   - nextcloud-redis
     #   - nextcloud-db
     volumes:
-      - nextcloud-app:/var/www/html
+      - /opt/nextcloud-app/user-data:/var/www/html/data
     environment:
       - POSTGRES_HOST=postgres-server:5432
       - POSTGRES_DB=nextcloud
