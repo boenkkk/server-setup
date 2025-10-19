@@ -1,0 +1,25 @@
+# https://github.com/butlerx/wetty
+# https://hub.docker.com/r/wettyoss/wetty
+version: "3.8"
+
+services:
+  wetty:
+    image: wettyoss/wetty:2
+    container_name: wetty
+    hostname: wetty
+    networks:
+      - app-tier
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    command:
+      #- "--force-ssh"
+      - "--base=/"
+      - "--ssh-host={YOUR_SERVER}"
+      - "--ssh-port={YOUR_SSH_PORT}"
+      - "--ssh-user={YOUR_SSH_USER}"
+      - "--ssh-pass={YOUR_SSH_PASSWORD}"
+
+networks:
+  app-tier:
+    external: true
