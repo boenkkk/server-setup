@@ -20,7 +20,8 @@ services:
       ND_SESSIONTIMEOUT: 24h
     volumes:
       - navidrome_data:/data
-      - /opt/navidrome/music:/music
+      # - /opt/navidrome/music:/music
+      - /mnt/hdd500/music:/music
 
 volumes:
   navidrome_data:
