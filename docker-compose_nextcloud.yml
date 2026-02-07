@@ -21,6 +21,19 @@ services:
   #   image: redis:alpine
   #   restart: always
 
+  # Note: for access using domain
+  # 1. access to container
+  # 2. nano config/config.php
+  # 3. edit
+  # 'trusted_domains' => 
+  # array (
+  #   0 => '192.168.1.6:8080',
+  #   1 => 'nextcloud.boenkkk.dev',
+  # ),
+  # 'overwrite.cli.url' => 'https://nextcloud.boenkkk.dev',
+  # 'overwriteprotocol' => 'https',
+  # 'overwritehost' => 'nextcloud.boenkkk.dev',
+
   nextcloud-app:
     image: nextcloud
     container_name: nextcloud
@@ -35,6 +48,7 @@ services:
     #   - nextcloud-db
     volumes:
       - /opt/nextcloud-app/user-data:/var/www/html/data
+      - /mnt/hdd500/nextcloud-app/user-data:/var/www/html/data
     environment:
       - POSTGRES_HOST=postgres-server:5432
       - POSTGRES_DB=nextcloud
