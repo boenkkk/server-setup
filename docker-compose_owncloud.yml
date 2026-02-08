@@ -1,0 +1,79 @@
+version: "3"
+
+services:
+  owncloud:
+    image: owncloud/server:10.16
+    container_name: owncloud
+    restart: always
+    networks:
+      - app-tier
+    ports:
+      - 8082:8080
+    # depends_on:
+    #   - mariadb
+    #   - redis
+    environment:
+      - OWNCLOUD_DOMAIN=192.168.1.6:8082
+      - OWNCLOUD_TRUSTED_DOMAINS=192.168.1.6,owncloud.boenkkk.dev
+      - OWNCLOUD_DB_TYPE=pgsql
+      - OWNCLOUD_DB_NAME=owncloud
+      - OWNCLOUD_DB_USERNAME=postgres
+      - OWNCLOUD_DB_PASSWORD=postgrespostgres123
+      - OWNCLOUD_DB_HOST=postgres-server
+      - OWNCLOUD_ADMIN_USERNAME=admin
+      - OWNCLOUD_ADMIN_PASSWORD=adminadmin123
+      # - OWNCLOUD_MYSQL_UTF8MB4=true
+      - OWNCLOUD_REDIS_ENABLED=true
+      - OWNCLOUD_REDIS_HOST=redis
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - owncloud-files:/mnt/data
+      - /mnt/hdd500/owncloud/data:/mnt/data
+
+  # mariadb:
+  #   image: mariadb:10.11 # minimum required ownCloud version is 10.9
+  #   container_name: owncloud_mariadb
+  #   restart: always
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=owncloud
+  #     - MYSQL_USER=owncloud
+  #     - MYSQL_PASSWORD=owncloud
+  #     - MYSQL_DATABASE=owncloud
+  #     - MARIADB_AUTO_UPGRADE=1
+  #   command: ["--max-allowed-packet=128M", "--innodb-log-file-size=64M"]
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-u", "root", "--password=owncloud"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - mysql:/var/lib/mysql
+
+  # redis:
+  #   image: redis:6
+  #   container_name: owncloud_redis
+  #   restart: always
+  #   command: ["--databases", "1"]
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - redis:/data
+
+volumes:
+  owncloud-files:
+    driver: local
+  # mysql:
+  #   driver: local
+  # redis:
+  #   driver: local
+
+networks:
+  app-tier:
+    external: true
