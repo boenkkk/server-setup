@@ -1,0 +1,17 @@
+services:
+  9router:
+    image: decolua/9router:0.4.71
+    container_name: 9router
+    networks:
+      - app-tier
+    ports:
+      - '20128:20128'
+    volumes:
+      - /opt/9router/data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+    restart: always
+
+networks:
+  app-tier:
+    external: true
