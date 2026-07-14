@@ -1,0 +1,24 @@
+services:
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgrespostgres123
+      DB_HOST: postgres-server
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 50
+      AUTH_TYPE: plain
+    ports:
+      - "6432:5432"
+    networks:
+      - app-tier
+    restart: always
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
