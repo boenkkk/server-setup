@@ -112,7 +112,7 @@ check_health() {
     log_info "Checking service health..."
     
     # Check database
-    if docker exec immich-db pg_isready -U immich &> /dev/null; then
+    if docker exec immich-db pg_isready -U postgres &> /dev/null; then
         log_success "Database: OK"
     else
         log_error "Database: FAILED"
@@ -158,7 +158,7 @@ backup_database() {
     local backup_file="immich-db-backup-${timestamp}.sql"
     
     log_info "Backing up database to $backup_file..."
-    docker exec immich-db pg_dump -U immich immich > "$backup_file"
+    docker exec immich-db pg_dump -U postgres immich > "$backup_file"
     log_success "Database backed up to $backup_file"
 }
 
@@ -181,7 +181,7 @@ restore_database() {
     
     if [ "$confirm" = "yes" ]; then
         log_info "Restoring database from $backup_file..."
-        docker exec -i immich-db psql -U immich immich < "$backup_file"
+        docker exec -i immich-db psql -U postgres immich < "$backup_file"
         log_success "Database restored"
     else
         log_info "Cancelled"
@@ -240,7 +240,6 @@ SERVICES:
   immich-db
   immich-redis
   immich-server
-  immich-microservices
   immich-machine-learning (advanced, ml profile)
 
 URLS:

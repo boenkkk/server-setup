@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Immich Health Check and Monitoring Script
+# Immich Health Check and Monitoring Script (v3)
 # Monitors Immich services and generates health reports
 
 set -e
@@ -9,6 +9,7 @@ COMPOSE_FILE="${1:-docker-compose_immich.yml}"
 REPORT_DIR="immich-reports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="$REPORT_DIR/health-report-${TIMESTAMP}.txt"
+IMMICH_PORT="${IMMICH_PORT:-2283}"
 
 # Create report directory
 mkdir -p "$REPORT_DIR"
@@ -50,9 +51,9 @@ check_containers() {
     
     # Verify all containers are running
     RUNNING=$(docker-compose -f "$COMPOSE_FILE" ps -q | wc -l)
-    EXPECTED=5  # Adjust based on your setup
+    EXPECTED=3  # immich-server, immich-db, immich-redis
     
-    if [ "$RUNNING" -ge 5 ]; then
+    if [ "$RUNNING" -ge "$EXPECTED" ]; then
         log_success "All containers running ($RUNNING)"
     else
         log_warn "Only $RUNNING/$EXPECTED containers running"
@@ -67,19 +68,19 @@ check_database() {
         echo "### Database Health"
         echo ""
         
-        if docker exec immich-db pg_isready -U immich > /dev/null 2>&1; then
+        if docker exec immich-db pg_isready -U postgres > /dev/null 2>&1; then
             echo "Status: OK"
             
             # Get database size
-            DB_SIZE=$(docker exec immich-db psql -U immich -d immich -t -c "SELECT pg_size_pretty(pg_database_size('immich'));")
+            DB_SIZE=$(docker exec immich-db psql -U postgres -d immich -t -c "SELECT pg_size_pretty(pg_database_size('immich'));")
             echo "Size: $DB_SIZE"
             
             # Get connection count
-            CONNECTIONS=$(docker exec immich-db psql -U immich -d immich -t -c "SELECT count(*) FROM pg_stat_activity;")
+            CONNECTIONS=$(docker exec immich-db psql -U postgres -d immich -t -c "SELECT count(*) FROM pg_stat_activity;")
             echo "Active Connections: $CONNECTIONS"
             
             # Get table count
-            TABLES=$(docker exec immich-db psql -U immich -d immich -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+            TABLES=$(docker exec immich-db psql -U postgres -d immich -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
             echo "Tables: $TABLES"
         else
             echo "Status: FAILED"
@@ -88,9 +89,9 @@ check_database() {
     } >> "$REPORT_FILE"
 }
 
-# Check Redis health
+# Check Redis (Valkey) health
 check_redis() {
-    log_info "Checking Redis..."
+    log_info "Checking Redis (Valkey)..."
     
     {
         echo "### Redis Health"
@@ -110,7 +111,7 @@ check_redis() {
     } >> "$REPORT_FILE"
 }
 
-# Check API server
+# Check API server + Web UI (same port in v3)
 check_api() {
     log_info "Checking API server..."
     
@@ -118,11 +119,11 @@ check_api() {
         echo "### API Server Health"
         echo ""
         
-        if curl -s http://localhost:3001/api/server/ping > /dev/null 2>&1; then
+        if curl -s "http://localhost:${IMMICH_PORT}/api/server/ping" > /dev/null 2>&1; then
             echo "Status: OK"
             
             # Get server info
-            RESPONSE=$(curl -s http://localhost:3001/api/server/info || echo "{}")
+            RESPONSE=$(curl -s "http://localhost:${IMMICH_PORT}/api/server/info" || echo "{}")
             echo "Response: $(echo $RESPONSE | head -c 100)..."
         else
             echo "Status: FAILED"
@@ -139,7 +140,7 @@ check_web() {
         echo "### Web UI Health"
         echo ""
         
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${IMMICH_PORT}")
         if [ "$HTTP_CODE" = "200" ]; then
             echo "Status: OK (HTTP $HTTP_CODE)"
         else
@@ -157,17 +158,21 @@ check_disk() {
         echo "### Disk Usage"
         echo ""
         
-        # Check upload volume
-        UPLOAD_SIZE=$(docker run --rm -v immich-upload:/data busybox du -sh /data 2>/dev/null | cut -f1)
-        echo "Upload Volume: $UPLOAD_SIZE"
+        # Check upload location
+        if [ -d "$PWD/library" ]; then
+            UPLOAD_SIZE=$(du -sh "$PWD/library" 2>/dev/null | cut -f1)
+            echo "Upload Library ($PWD/library): $UPLOAD_SIZE"
+        else
+            echo "Upload Library: not found ($PWD/library)"
+        fi
         
-        # Check thumbs volume
-        THUMBS_SIZE=$(docker run --rm -v immich-thumbs:/data busybox du -sh /data 2>/dev/null | cut -f1)
-        echo "Thumbs Volume: $THUMBS_SIZE"
-        
-        # Check database volume
-        DB_SIZE=$(docker run --rm -v immich-db-data:/data busybox du -sh /data 2>/dev/null | cut -f1)
-        echo "Database Volume: $DB_SIZE"
+        # Check database location
+        if [ -d "$PWD/postgres-data" ]; then
+            DB_SIZE=$(du -sh "$PWD/postgres-data" 2>/dev/null | cut -f1)
+            echo "Database Data ($PWD/postgres-data): $DB_SIZE"
+        else
+            echo "Database Data: not found ($PWD/postgres-data)"
+        fi
         echo ""
     } >> "$REPORT_FILE"
 }
@@ -180,7 +185,7 @@ check_logs() {
         echo "### Recent Errors in Logs"
         echo ""
         
-        SERVICES=("immich-server" "immich-microservices" "immich-web" "immich-db" "immich-redis")
+        SERVICES=("immich-server" "immich-db" "immich-redis")
         
         for SERVICE in "${SERVICES[@]}"; do
             ERRORS=$(docker logs --tail 100 "$SERVICE" 2>&1 | grep -i "error\|failed\|exception" | tail -5 || true)
@@ -217,18 +222,21 @@ generate_recommendations() {
         echo ""
         
         # Check database size
-        DB_SIZE_BYTES=$(docker exec immich-db psql -U immich -d immich -t -c "SELECT pg_database_size('immich');" 2>/dev/null || echo "0")
+        DB_SIZE_BYTES=$(docker exec immich-db psql -U postgres -d immich -t -c "SELECT pg_database_size('immich');" 2>/dev/null || echo "0")
         if [ "$DB_SIZE_BYTES" -gt 5368709120 ]; then
             echo "⚠️  Large database (>5GB) - consider archiving old records"
         fi
         
-        # Check upload volume
-        if docker run --rm -v immich-upload:/data busybox du -sb /data 2>/dev/null | awk '{if($1 > 107374182400) exit 0; else exit 1}'; then
-            echo "⚠️  Large upload volume (>100GB) - consider cleanup or archival"
+        # Check upload location disk usage
+        if [ -d "$PWD/library" ]; then
+            UPLOAD_KB=$(du -sk "$PWD/library" 2>/dev/null | cut -f1)
+            if [ "$UPLOAD_KB" -gt 104857600 ]; then
+                echo "⚠️  Large upload library (>100GB) - consider cleanup or archival"
+            fi
         fi
         
         # Check connection count
-        CONNECTIONS=$(docker exec immich-db psql -U immich -d immich -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null || echo "0")
+        CONNECTIONS=$(docker exec immich-db psql -U postgres -d immich -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null || echo "0")
         if [ "$CONNECTIONS" -gt 50 ]; then
             echo "⚠️  High connection count ($CONNECTIONS) - consider connection pooling"
         fi

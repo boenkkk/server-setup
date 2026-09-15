@@ -31,12 +31,12 @@ backup_database() {
     log_info "Starting database backup..."
     log_info "Backup file: $backup_file"
     
-    if ! docker exec immich-db pg_isready -U immich > /dev/null 2>&1; then
+    if ! docker exec immich-db pg_isready -U postgres > /dev/null 2>&1; then
         log_error "Database is not ready"
         return 1
     fi
     
-    docker exec immich-db pg_dump -U immich immich > "$backup_file"
+    docker exec immich-db pg_dump -U postgres immich > "$backup_file"
     
     local size=$(du -h "$backup_file" | cut -f1)
     log_success "Database backed up successfully (Size: $size)"
@@ -50,12 +50,12 @@ backup_database_compressed() {
     log_info "Starting compressed database backup..."
     log_info "Backup file: $backup_file"
     
-    if ! docker exec immich-db pg_isready -U immich > /dev/null 2>&1; then
+    if ! docker exec immich-db pg_isready -U postgres > /dev/null 2>&1; then
         log_error "Database is not ready"
         return 1
     fi
     
-    docker exec immich-db pg_dump -U immich immich | gzip > "$backup_file"
+    docker exec immich-db pg_dump -U postgres immich | gzip > "$backup_file"
     
     local size=$(du -h "$backup_file" | cut -f1)
     log_success "Compressed database backup completed (Size: $size)"
@@ -91,7 +91,7 @@ backup_full() {
     
     # Backup database
     log_info "Backing up database..."
-    docker exec immich-db pg_dump -U immich immich | gzip > "$backup_dir/database.sql.gz"
+    docker exec immich-db pg_dump -U postgres immich | gzip > "$backup_dir/database.sql.gz"
     
     # Backup volumes
     log_info "Backing up volumes..."
@@ -124,7 +124,7 @@ Contents:
 
 Restore Instructions:
 1. Stop services: docker-compose down
-2. Restore database: docker exec -i immich-db psql -U immich immich < database.sql
+2. Restore database: docker exec -i immich-db psql -U postgres immich < database.sql
 3. Restore volumes: See immich-restore-backup.sh script
 4. Start services: docker-compose up -d
 
@@ -170,22 +170,22 @@ restore_database() {
     fi
     
     log_info "Stopping services..."
-    docker-compose -f "$COMPOSE_FILE" stop immich-server immich-microservices || true
+    docker-compose -f "$COMPOSE_FILE" stop immich-server || true
     
     log_info "Restoring database from: $backup_file"
     
     # Handle compressed backups
     if [[ "$backup_file" == *.gz ]]; then
         log_info "Decompressing backup..."
-        gunzip -c "$backup_file" | docker exec -i immich-db psql -U immich immich
+        gunzip -c "$backup_file" | docker exec -i immich-db psql -U postgres immich
     else
-        docker exec -i immich-db psql -U immich immich < "$backup_file"
+        docker exec -i immich-db psql -U postgres immich < "$backup_file"
     fi
     
     log_success "Database restored successfully"
     
     log_info "Starting services..."
-    docker-compose -f "$COMPOSE_FILE" start immich-server immich-microservices
+    docker-compose -f "$COMPOSE_FILE" start immich-server
     
     log_success "Restore complete"
 }

@@ -1,167 +1,84 @@
-version: '3.8'
-
-# Advanced Immich Docker Compose with optional services and optimizations
-# This is an alternative to docker-compose_immich.yml with additional features
+name: immich
+# Docker Compose for Immich v3 (aligned with official v3.2.1 architecture)
+# Advanced setup: standard services + optional machine learning (profile: ml)
 
 services:
-  # PostgreSQL Database for Immich with custom configuration
   immich-db:
-    image: postgres:15-alpine
     container_name: immich-db
+    # Postgres 14 with vchord + pgvectors extensions bundled (required by Immich v3)
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
     environment:
-      POSTGRES_DB: immich
-      POSTGRES_USER: immich
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-immich_password}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_DB: ${DB_DATABASE_NAME:-immich}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
-      - immich-db-data:/var/lib/postgresql/data
-      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
-    command:
-      - "postgres"
-      - "-c"
-      - "config_file=/etc/postgresql/postgresql.conf"
+      - ${DB_DATA_LOCATION:-./postgres-data}:/var/lib/postgresql/data
+    shm_size: 128mb
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U immich"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE_NAME:-immich}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - immich-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Redis Cache with persistence
   immich-redis:
-    image: redis:7-alpine
     container_name: immich-redis
-    command: redis-server --appendonly yes --appendfsync everysec
-    volumes:
-      - immich-redis-data:/data
+    # Redis is replaced by Valkey in Immich v3
+    image: docker.io/valkey/valkey:9@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - immich-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Immich Server (API)
   immich-server:
-    image: ghcr.io/immich-app/immich-server:latest
     container_name: immich-server
-    depends_on:
-      immich-db:
-        condition: service_healthy
-      immich-redis:
-        condition: service_healthy
+    # In v3, the server serves both API and microservices in a single container
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      - ${UPLOAD_LOCATION:-./library}:/data
+      - /etc/localtime:/etc/localtime:ro
     environment:
       DB_HOSTNAME: immich-db
-      DB_USERNAME: immich
-      DB_PASSWORD: ${DB_PASSWORD:-immich_password}
-      DB_DATABASE_NAME: immich
       REDIS_HOSTNAME: immich-redis
-      LOG_LEVEL: ${LOG_LEVEL:-log}
-      NODE_ENV: production
-      IMMICH_SKIP_MIGRATION: "false"
-      # Performance tuning
-      WORKERS: ${WORKERS:-4}
-      # Security
-      JWT_SECRET: ${JWT_SECRET:-change_me_to_random_string}
-      # Optional features
-      ENABLE_MAPBOX: "false"
-      # Reverse geocoding
-      # REVERSE_GEOCODING_ENABLED: "true"
-    volumes:
-      - immich-upload:/usr/src/app/upload
-      - immich-thumbs:/usr/src/app/thumbs
-      - /etc/localtime:/etc/localtime:ro
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_DATABASE_NAME: ${DB_DATABASE_NAME:-immich}
+      TZ: ${TZ:-Etc/UTC}
     ports:
-      - "${IMMICH_PORT:-2283}:3001"
-    restart: unless-stopped
-    networks:
-      - immich-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/server/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Immich Microservices (Background tasks, ML pipeline)
-  immich-microservices:
-    image: ghcr.io/immich-app/immich-server:latest
-    container_name: immich-microservices
-    command: start.sh microservices
+      - "${IMMICH_PORT:-2283}:2283"
     depends_on:
       immich-db:
         condition: service_healthy
       immich-redis:
         condition: service_healthy
-    environment:
-      DB_HOSTNAME: immich-db
-      DB_USERNAME: immich
-      DB_PASSWORD: ${DB_PASSWORD:-immich_password}
-      DB_DATABASE_NAME: immich
-      REDIS_HOSTNAME: immich-redis
-      LOG_LEVEL: ${LOG_LEVEL:-log}
-      NODE_ENV: production
-      IMMICH_SKIP_MIGRATION: "false"
-      # Performance tuning
-      WORKERS: ${WORKERS:-2}
-      JWT_SECRET: ${JWT_SECRET:-change_me_to_random_string}
-    volumes:
-      - immich-upload:/usr/src/app/upload
-      - immich-thumbs:/usr/src/app/thumbs
-      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
-    networks:
-      - immich-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Optional: Machine Learning Service for face detection and advanced features
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:latest
     container_name: immich-machine-learning
-    depends_on:
-      - immich-server
-    environment:
-      IMMICH_HOST: http://immich-server:3001
-      IMMICH_API_AUTHTOKEN: ${ML_API_TOKEN:-}
-      # Model optimization
-      TRANSFORMERS_CACHE: /cache
-      # Performance settings
-      WORKERS: ${ML_WORKERS:-1}
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     volumes:
       - immich-ml-cache:/cache
-    ports:
-      - "${ML_PORT:-3003}:3003"
+    environment:
+      IMMICH_HOST: http://immich-server:2283
     restart: unless-stopped
-    networks:
-      - immich-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -171,17 +88,4 @@ services:
       - ml
 
 volumes:
-  immich-db-data:
-    driver: local
-  immich-redis-data:
-    driver: local
-  immich-upload:
-    driver: local
-  immich-thumbs:
-    driver: local
   immich-ml-cache:
-    driver: local
-
-networks:
-  immich-network:
-    driver: bridge
