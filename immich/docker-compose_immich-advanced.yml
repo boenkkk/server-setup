@@ -1,0 +1,259 @@
+version: '3.8'
+
+# Advanced Immich Docker Compose with optional services and optimizations
+# This is an alternative to docker-compose_immich.yml with additional features
+
+services:
+  # PostgreSQL Database for Immich with custom configuration
+  immich-db:
+    image: postgres:15-alpine
+    container_name: immich-db
+    environment:
+      POSTGRES_DB: immich
+      POSTGRES_USER: immich
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-immich_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - immich-db-data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U immich"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - immich-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis Cache with persistence
+  immich-redis:
+    image: redis:7-alpine
+    container_name: immich-redis
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - immich-redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - immich-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Immich Server (API)
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:latest
+    container_name: immich-server
+    depends_on:
+      immich-db:
+        condition: service_healthy
+      immich-redis:
+        condition: service_healthy
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: immich
+      DB_PASSWORD: ${DB_PASSWORD:-immich_password}
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      LOG_LEVEL: ${LOG_LEVEL:-log}
+      NODE_ENV: production
+      IMMICH_SKIP_MIGRATION: "false"
+      # Performance tuning
+      WORKERS: ${WORKERS:-4}
+      # Security
+      JWT_SECRET: ${JWT_SECRET:-change_me_to_random_string}
+      # Optional features
+      ENABLE_MAPBOX: "false"
+      # Reverse geocoding
+      # REVERSE_GEOCODING_ENABLED: "true"
+    volumes:
+      - immich-upload:/usr/src/app/upload
+      - immich-thumbs:/usr/src/app/thumbs
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${IMMICH_PORT:-3001}:3001"
+    restart: unless-stopped
+    networks:
+      - immich-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/server/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Immich Microservices (Background tasks, ML pipeline)
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:latest
+    container_name: immich-microservices
+    command: start.sh microservices
+    depends_on:
+      immich-db:
+        condition: service_healthy
+      immich-redis:
+        condition: service_healthy
+    environment:
+      DB_HOSTNAME: immich-db
+      DB_USERNAME: immich
+      DB_PASSWORD: ${DB_PASSWORD:-immich_password}
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      LOG_LEVEL: ${LOG_LEVEL:-log}
+      NODE_ENV: production
+      IMMICH_SKIP_MIGRATION: "false"
+      # Performance tuning
+      WORKERS: ${WORKERS:-2}
+      JWT_SECRET: ${JWT_SECRET:-change_me_to_random_string}
+    volumes:
+      - immich-upload:/usr/src/app/upload
+      - immich-thumbs:/usr/src/app/thumbs
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    networks:
+      - immich-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Immich Web Frontend
+  immich-web:
+    image: ghcr.io/immich-app/immich-web:latest
+    container_name: immich-web
+    depends_on:
+      - immich-server
+    environment:
+      VITE_SERVER_URL: ${VITE_SERVER_URL:-http://localhost:3001}
+      # Optional: Public URL for sharing
+      # PUBLIC_IMMICH_SERVER_URL: https://immich.example.com
+    ports:
+      - "${IMMICH_WEB_PORT:-3000}:80"
+    restart: unless-stopped
+    networks:
+      - immich-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Machine Learning Service for face detection and advanced features
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:latest
+    container_name: immich-machine-learning
+    depends_on:
+      - immich-server
+    environment:
+      IMMICH_HOST: http://immich-server:3001
+      IMMICH_API_AUTHTOKEN: ${ML_API_TOKEN:-}
+      # Model optimization
+      TRANSFORMERS_CACHE: /cache
+      # Performance settings
+      WORKERS: ${ML_WORKERS:-1}
+    volumes:
+      - immich-ml-cache:/cache
+    ports:
+      - "${ML_PORT:-3003}:3003"
+    restart: unless-stopped
+    networks:
+      - immich-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    profiles:
+      - ml
+
+  # Optional: Typesense for full-text search (advanced feature)
+  immich-typesense:
+    image: typesense/typesense:27.0
+    container_name: immich-typesense
+    environment:
+      TYPESENSE_DATA_DIR: /data/typesense
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-change_me_to_random_string}
+    volumes:
+      - immich-typesense-data:/data/typesense
+    ports:
+      - "${TYPESENSE_PORT:-8108}:8108"
+    restart: unless-stopped
+    networks:
+      - immich-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8108/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    profiles:
+      - search
+
+  # Optional: Monitoring with Prometheus exporter
+  immich-exporter:
+    image: promtail-immich:latest
+    container_name: immich-exporter
+    depends_on:
+      - immich-server
+    environment:
+      IMMICH_URL: http://immich-server:3001
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-}
+    ports:
+      - "${EXPORTER_PORT:-9090}:9090"
+    restart: unless-stopped
+    networks:
+      - immich-network
+    profiles:
+      - monitoring
+
+volumes:
+  immich-db-data:
+    driver: local
+  immich-redis-data:
+    driver: local
+  immich-upload:
+    driver: local
+  immich-thumbs:
+    driver: local
+  immich-ml-cache:
+    driver: local
+  immich-typesense-data:
+    driver: local
+
+networks:
+  immich-network:
+    driver: bridge
