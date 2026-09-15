@@ -1,0 +1,19 @@
+services:
+  dockhand:
+    image: fnsys/dockhand:v1.0.48
+    container_name: dockhand
+    restart: unless-stopped
+    networks:
+      - app-tier
+    ports:
+      - 3000:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockhand_data:/app/data
+
+volumes:
+  dockhand_data:
+
+networks:
+  app-tier:
+    external: true
