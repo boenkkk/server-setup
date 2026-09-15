@@ -87,7 +87,7 @@ services:
       - immich-thumbs:/usr/src/app/thumbs
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "${IMMICH_PORT:-3001}:3001"
+      - "${IMMICH_PORT:-2283}:3001"
     restart: unless-stopped
     networks:
       - immich-network
@@ -137,32 +137,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Immich Web Frontend
-  immich-web:
-    image: ghcr.io/immich-app/immich-web:latest
-    container_name: immich-web
-    depends_on:
-      - immich-server
-    environment:
-      VITE_SERVER_URL: ${VITE_SERVER_URL:-http://localhost:3001}
-      # Optional: Public URL for sharing
-      # PUBLIC_IMMICH_SERVER_URL: https://immich.example.com
-    ports:
-      - "${IMMICH_WEB_PORT:-3000}:80"
-    restart: unless-stopped
-    networks:
-      - immich-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # Optional: Machine Learning Service for face detection and advanced features
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:latest
@@ -196,50 +170,6 @@ services:
     profiles:
       - ml
 
-  # Optional: Typesense for full-text search (advanced feature)
-  immich-typesense:
-    image: typesense/typesense:27.0
-    container_name: immich-typesense
-    environment:
-      TYPESENSE_DATA_DIR: /data/typesense
-      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-change_me_to_random_string}
-    volumes:
-      - immich-typesense-data:/data/typesense
-    ports:
-      - "${TYPESENSE_PORT:-8108}:8108"
-    restart: unless-stopped
-    networks:
-      - immich-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8108/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    profiles:
-      - search
-
-  # Optional: Monitoring with Prometheus exporter
-  immich-exporter:
-    image: promtail-immich:latest
-    container_name: immich-exporter
-    depends_on:
-      - immich-server
-    environment:
-      IMMICH_URL: http://immich-server:3001
-      IMMICH_API_KEY: ${IMMICH_API_KEY:-}
-    ports:
-      - "${EXPORTER_PORT:-9090}:9090"
-    restart: unless-stopped
-    networks:
-      - immich-network
-    profiles:
-      - monitoring
-
 volumes:
   immich-db-data:
     driver: local
@@ -250,8 +180,6 @@ volumes:
   immich-thumbs:
     driver: local
   immich-ml-cache:
-    driver: local
-  immich-typesense-data:
     driver: local
 
 networks:

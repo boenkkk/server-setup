@@ -125,15 +125,15 @@ check_health() {
         log_error "Redis: FAILED"
     fi
     
-    # Check API
-    if curl -s http://localhost:3001/api/server/ping &> /dev/null; then
+    # Check API + Web UI (served on the same port since Immich v1.106+)
+    if curl -s http://localhost:${IMMICH_PORT:-2283}/api/server/ping &> /dev/null; then
         log_success "API Server: OK"
     else
         log_error "API Server: FAILED"
     fi
     
     # Check Web UI
-    if curl -s http://localhost:3000 &> /dev/null; then
+    if curl -s -o /dev/null http://localhost:${IMMICH_PORT:-2283} &> /dev/null; then
         log_success "Web UI: OK"
     else
         log_error "Web UI: FAILED"
@@ -241,12 +241,10 @@ SERVICES:
   immich-redis
   immich-server
   immich-microservices
-  immich-web
-  immich-machine-learning (advanced only)
+  immich-machine-learning (advanced, ml profile)
 
 URLS:
-  Web UI: http://localhost:3000
-  API:    http://localhost:3001
+  Web UI + API: http://<server-ip>:${IMMICH_PORT:-2283}
 
 EOF
 }

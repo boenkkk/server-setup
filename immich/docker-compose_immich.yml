@@ -65,7 +65,7 @@ services:
       - immich-thumbs:/usr/src/app/thumbs
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "${IMMICH_PORT:-3001}:3001"
+      - "${IMMICH_PORT:-2283}:3001"
     restart: unless-stopped
     networks:
       - immich-network
@@ -103,25 +103,6 @@ services:
     restart: unless-stopped
     networks:
       - immich-network
-
-  # Immich Web Frontend
-  immich-web:
-    image: ghcr.io/immich-app/immich-web:latest
-    container_name: immich-web
-    depends_on:
-      - immich-server
-    environment:
-      VITE_SERVER_URL: ${VITE_SERVER_URL:-http://localhost:3001}
-    ports:
-      - "${IMMICH_WEB_PORT:-3000}:80"
-    restart: unless-stopped
-    networks:
-      - immich-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # Optional: Machine Learning Service (uncomment if needed)
   # immich-machine-learning:

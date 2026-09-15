@@ -25,7 +25,7 @@ sleep 15
 ./immich-manage.sh health
 
 # 5. Access
-open http://localhost:3000
+open http://<server-ip>:2283
 ```
 
 ---
@@ -91,17 +91,16 @@ docker stats                          # Monitor resources
 
 ## 📊 What's Included
 
-### Standard Setup (5 Services)
+### Standard Setup (4 Services)
 - PostgreSQL 15 database
 - Redis 7 cache
-- Immich API server
+- Immich API server (also serves the Web UI)
 - Immich microservices
-- Immich web frontend
 
 ### Advanced Setup (+ Optional)
-- Machine Learning service
-- Typesense search engine
-- Monitoring exporters
+- Machine Learning service (`--profile` ml)
+
+> Note: Since Immich v1.106+, the web UI is bundled with `immich-server` (no separate `immich-web` container). Typesense was removed in favor of built-in PostgreSQL search.
 
 ### Built-In Tools
 - Service management CLI
@@ -181,7 +180,7 @@ All files created successfully:
 
 1. **Read** `IMMICH_GETTING_STARTED.md` (5 min)
 2. **Run** `./immich-manage.sh start`
-3. **Access** http://localhost:3000
+3. **Access** http://<server-ip>:2283
 4. **Backup** Create initial backup: `./immich-backup.sh backup-full`
 5. **Deploy** Follow `IMMICH_DEPLOYMENT_GUIDE.md` for production
 
